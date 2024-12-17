@@ -16,6 +16,7 @@ public class CardManager : MonoBehaviour
     [SerializeField] private Health playerHealth;
     [SerializeField] private PlayerMovement playerMovementScript;
     [SerializeField] private GameObject WeaponsParent;
+    [SerializeField] private PlayerDamageAttributes playerDamageAttributesScript;
 
     public static CardManager Instance;
     [NonSerialized] public Weapon currentActiveWeapon;
@@ -56,25 +57,32 @@ public class CardManager : MonoBehaviour
     }
 
     public void AddBuff(CardEffect cardEffect, float buffValue){
+        PlayerDamageAttributes.CharacterMaxStats roundMaxStats = playerDamageAttributesScript.GetMaxStatsForRound(EnemySpawningSystem.Instance.roundNumber);
+
         switch(cardEffect){
             case CardEffect.HealthIncrease:
                 playerHealth.maxHealth += buffValue;
+                playerHealth.maxHealth = Mathf.Clamp(playerHealth.maxHealth, 0f, roundMaxStats.maxHealth);
                 playerHealth.ChangeHealth(buffValue);
                 break;
             case CardEffect.DamageIncrease:
                 PlayerDamageAttributes.characterDamage += buffValue * PlayerDamageAttributes.BASE_CHARACTER_DAMAGE;
+                PlayerDamageAttributes.characterDamage = Mathf.Clamp(PlayerDamageAttributes.characterDamage, 0f, roundMaxStats.maxCharacterDamage);
                 break;
             case CardEffect.MovementSpeedIncrease:
                 playerMovementScript.ChangeMovementSpeed(buffValue);
                 break;
             case CardEffect.CritRateIncrease:
                 PlayerDamageAttributes.critRate += buffValue;
+                PlayerDamageAttributes.critRate = Mathf.Clamp(PlayerDamageAttributes.critRate, 0f, roundMaxStats.maxCritRate);
                 break;
             case CardEffect.CritDamageIncrease:
                 PlayerDamageAttributes.critDamage += buffValue;
+                PlayerDamageAttributes.critDamage = Mathf.Clamp(PlayerDamageAttributes.critDamage, 0f, roundMaxStats.maxCritDamage);
                 break;
             case CardEffect.HealthRegeneration:
                 playerHealth.healthRegenValue += buffValue;
+                playerHealth.healthRegenValue = Mathf.Clamp(playerHealth.healthRegenValue, 0f, roundMaxStats.maxHealthRegen);
                 break;
         }
 

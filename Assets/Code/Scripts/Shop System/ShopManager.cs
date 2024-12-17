@@ -42,6 +42,7 @@ public class ShopManager : MonoBehaviour
     private List<int> purchaseCount;
 
     private ItemSO currentSelectedItem;
+    private int currentSelectedItemPrice;
 
     private void Start()
     {
@@ -161,17 +162,18 @@ public class ShopManager : MonoBehaviour
         }
     }
 
-    public void PopUpCart(ItemSO item){
-        if(CoinsManager.Instance.coinsValue - item.price < 0)
+    public void PopUpCart(ItemSO item, int newPrice){
+        if(CoinsManager.Instance.coinsValue - newPrice < 0)
         return;
 
         currentSelectedItem = item;
+        currentSelectedItemPrice = newPrice;
         popUpPanel.SetActive(true);
         buyItemText.text = "Buy " + item.Name + "?";
     }
 
     public void YesButton(){
-        CoinsManager.Instance.ChangeCoinsValue(-currentSelectedItem.price);
+        CoinsManager.Instance.ChangeCoinsValue(-currentSelectedItemPrice);
         
         switch(currentSelectedItem.itemType){
             case ItemType.Health:
@@ -225,10 +227,17 @@ public class ShopManager : MonoBehaviour
     }
 
     private void BuyAmmoItem(ItemSO currentItemSO){
-        weaponsDictionary[currentItemSO].reservedAmmo += currentItemSO.ammoTotal;
+        if(weaponsDictionary[currentItemSO].type == WeaponType.Beam){
+            weaponsDictionary[currentItemSO].currentAmmo += currentItemSO.ammoTotal;
+        } else{
+            weaponsDictionary[currentItemSO].reservedAmmo += currentItemSO.ammoTotal;
+        }
+        Debug.Log(currentItemSO.ammoTotal);
+
         WeaponSystem.Instance.UpdateAmmoText(weaponsDictionary[currentItemSO].currentAmmo,
             weaponsDictionary[currentItemSO].reservedAmmo, 
-            weaponsDictionary[currentItemSO].unlimitedMagazine);
+            weaponsDictionary[currentItemSO].unlimitedMagazine,
+            weaponsDictionary[currentItemSO].type);
     }
 
     private void IncrementPrice(){

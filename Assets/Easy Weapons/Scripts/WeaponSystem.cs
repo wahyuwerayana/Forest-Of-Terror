@@ -97,7 +97,7 @@ public class WeaponSystem : MonoBehaviour
 		//StartCoroutine(RefreshAmmo(weaponIndex));
 
 		Weapon currentWeaponScript = weapons[weaponIndex].GetComponent<Weapon>();
-		UpdateAmmoText(currentWeaponScript.currentAmmo, currentWeaponScript.reservedAmmo, currentWeaponScript.unlimitedMagazine);
+		UpdateAmmoText(currentWeaponScript.currentAmmo, currentWeaponScript.reservedAmmo, currentWeaponScript.unlimitedMagazine, currentWeaponScript.type);
 	}
 
 	public void NextWeapon()
@@ -116,9 +116,11 @@ public class WeaponSystem : MonoBehaviour
 		SetActiveWeapon(weaponIndex);
 	}
 
-	public void UpdateAmmoText(int currentAmmo, int reservedAmmo, bool unlimitedMagazine){
+	public void UpdateAmmoText(int currentAmmo, int reservedAmmo, bool unlimitedMagazine, WeaponType weaponType){
 		if(unlimitedMagazine){
-			ammoText.text = currentAmmo.ToString() + " / ∞";
+			ammoText.text = currentAmmo.ToString() + " / INF";
+		} else if(weaponType == WeaponType.Beam){
+			ammoText.text = currentAmmo.ToString();
 		} else{
 			ammoText.text = currentAmmo.ToString() + " / " + reservedAmmo.ToString();
 		}

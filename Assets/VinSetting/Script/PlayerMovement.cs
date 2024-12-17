@@ -136,5 +136,12 @@ public class PlayerMovement : MonoBehaviour
         walkSpeed += BASE_WALKSPEED * buffValue;
         sprintSpeed += BASE_SPRINTSPEED * buffValue;
         crouchSpeed += BASE_CROUCHSPEED * buffValue;
+        ClampMovementSpeed();
+    }
+
+    private void ClampMovementSpeed(){
+        walkSpeed = Mathf.Clamp(walkSpeed, BASE_WALKSPEED, BASE_WALKSPEED * 1.3f);
+        sprintSpeed = Mathf.Clamp(sprintSpeed, BASE_SPRINTSPEED, BASE_SPRINTSPEED * 1.3f);
+        crouchSpeed = Mathf.Clamp(crouchSpeed, BASE_CROUCHSPEED, BASE_CROUCHSPEED * 1.3f);
     }
 }

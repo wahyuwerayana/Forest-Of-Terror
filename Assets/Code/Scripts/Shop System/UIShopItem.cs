@@ -32,7 +32,7 @@ public class UIShopItem : MonoBehaviour
 
         icon.sprite = item.ItemImage;
         viewDescriptionButton.onClick.AddListener(() => shopManager.ShowItemDetails(itemData));
-        addToCart.onClick.AddListener(() => shopManager.PopUpCart(itemData));
+        addToCart.onClick.AddListener(() => shopManager.PopUpCart(itemData, value));
     }
 
     private void SetItemFrameByRarity(ItemSO item)

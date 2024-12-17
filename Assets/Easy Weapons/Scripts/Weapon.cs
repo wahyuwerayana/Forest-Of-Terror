@@ -112,7 +112,7 @@ public class Weapon : MonoBehaviour
 	public Color beamColor = Color.red;					// The color that will be used to tint the beam material
 	public float startBeamWidth = 0.5f;					// The width of the beam on the starting side
 	public float endBeamWidth = 1.0f;					// The width of the beam on the ending side
-	private float beamHeat = 0.0f;						// Timer to keep track of beam warmup and cooldown
+	private float beamHeat = 1.0f;						// Timer to keep track of beam warmup and cooldown
 	private bool coolingDown = false;					// Whether or not the beam weapon is currently cooling off.  This is used to make sure the weapon isn't fired when it's too close to the maximum heat level
 	private GameObject beamGO;							// The reference to the instantiated beam GameObject
 	private bool beaming = false;						// Whether or not the weapon is currently firing a beam - used to make sure StopBeam() is called after the beam is no longer being fired
@@ -136,7 +136,7 @@ public class Weapon : MonoBehaviour
 	public int ammoCapacity = 12;						// The number of rounds this weapon can fire before it has to reload
 	public int shotPerRound = 1;						// The number of "bullets" that will be fired on each round.  Usually this will be 1, but set to a higher number for things like shotguns with spread
 	public int reservedAmmo = 0;
-	public int currentAmmo;							// How much ammo the weapon currently has
+	public int currentAmmo = 0;							// How much ammo the weapon currently has
 	public float reloadTime = 2.0f;						// How much time it takes to reload the weapon
 	public bool showCurrentAmmo = true;					// Whether or not the current ammo should be displayed in the GUI
 	public bool reloadAutomatically = true;				// Whether or not the weapon should reload automatically when out of ammo
@@ -211,8 +211,11 @@ public class Weapon : MonoBehaviour
 	// Other
 	private bool canFire = true;						// Whether or not the weapon can currently fire (used for semi-auto weapons)
 
+	private AudioSource audioSource;
+
 	private void Awake() {
-		currentAmmo = ammoCapacity;	
+		if(type != WeaponType.Beam) currentAmmo = ammoCapacity;	
+		else currentAmmo += 100;
 	}
 
 	// Use this for initialization
@@ -234,12 +237,12 @@ public class Weapon : MonoBehaviour
 		// Make sure the fire timer starts at 0
 		fireTimer = 0.0f;
 
-		
+		audioSource = GetComponent<AudioSource>();
 
 		// Give this weapon an audio source component if it doesn't already have one
-		if (GetComponent<AudioSource>() == null)
+		if (audioSource == null)
 		{
-			gameObject.AddComponent(typeof(AudioSource));
+			audioSource = gameObject.AddComponent(typeof(AudioSource)) as AudioSource;
 		}
 
         // Make sure raycastStartSpot isn't null
@@ -283,6 +286,10 @@ public class Weapon : MonoBehaviour
 				defaultBulletHoles[i] = g.GetComponent<BulletHolePool>();
 			else
 				Debug.LogWarning("Default Bullet Hole Pool does not have a BulletHolePool component.  Please assign GameObjects in the inspector that have the BulletHolePool component.");
+		}
+
+		if(type == WeaponType.Beam){
+			//currentAmmo += 100;
 		}
 	}
 	
@@ -401,25 +408,23 @@ public class Weapon : MonoBehaviour
 		// Shoot a beam if this is a beam type weapon and the user presses the fire button
 		if (type == WeaponType.Beam)
 		{
-			if (Input.GetButton("Fire1") && beamHeat <= maxBeamHeat && !coolingDown && Time.timeScale != 0)
+			if (Input.GetButton("Fire1") && beamHeat <= maxBeamHeat && !coolingDown && Time.timeScale != 0 && currentAmmo > 0)
 			{
 				Beam();
-				WeaponSystem.Instance.UpdateAmmoText((int)(beamHeat * 100), (int)(maxBeamHeat * 100), unlimitedMagazine);
 			}
 			else
 			{
 				// Stop the beaming
 				StopBeam();
-				WeaponSystem.Instance.UpdateAmmoText((int)(beamHeat * 100), (int)(maxBeamHeat * 100), unlimitedMagazine);
 			}
-			if (beamHeat >= maxBeamHeat)
-			{
-				coolingDown = true;
-			}
-			else if (beamHeat <= maxBeamHeat - (maxBeamHeat / 2))
-			{
-				coolingDown = false;
-			}
+			// if (beamHeat >= maxBeamHeat)
+			// {
+			// 	coolingDown = true;
+			// }
+			// else if (beamHeat <= maxBeamHeat - (maxBeamHeat / 2))
+			// {
+			// 	coolingDown = false;
+			// }
 		}
 
 		// Reload if the "Reload" button is pressed
@@ -470,7 +475,7 @@ public class Weapon : MonoBehaviour
 		// Shoot a beam if this is a beam type weapon
 		if (type == WeaponType.Beam)
 		{
-			if (beamHeat <= maxBeamHeat && !coolingDown)
+			if (beamHeat <= maxBeamHeat && !coolingDown && currentAmmo > 0)
 			{
 				Beam();
 			}
@@ -810,9 +815,9 @@ public class Weapon : MonoBehaviour
 		}
 
 		// Play the gunshot sound
-		GetComponent<AudioSource>().PlayOneShot(fireSound);
+		audioSource.PlayOneShot(fireSound);
 
-		WeaponSystem.Instance.UpdateAmmoText(currentAmmo, reservedAmmo, unlimitedMagazine);
+		WeaponSystem.Instance.UpdateAmmoText(currentAmmo, reservedAmmo, unlimitedMagazine, type);
 	}
 
 	// Projectile system
@@ -885,9 +890,9 @@ public class Weapon : MonoBehaviour
 		}
 		
 		// Play the gunshot sound
-		GetComponent<AudioSource>().PlayOneShot(fireSound);
+		audioSource.PlayOneShot(fireSound);
 
-		WeaponSystem.Instance.UpdateAmmoText(currentAmmo, reservedAmmo, unlimitedMagazine);
+		WeaponSystem.Instance.UpdateAmmoText(currentAmmo, reservedAmmo, unlimitedMagazine, type);
 	}
 	
 	// Beam system
@@ -900,8 +905,14 @@ public class Weapon : MonoBehaviour
 		beaming = true;
 		
 		// Make the beam weapon heat up as it is being used
-		if (!infiniteBeam)
-			beamHeat += Time.deltaTime;
+		if (!infiniteBeam){
+			beamHeat -= Time.deltaTime;
+			if(beamHeat <= 0f){
+				beamHeat = 1f;
+				currentAmmo -= 2;
+			}
+		}
+			
 
 		// Make the beam effect if it hasn't already been made.  This system uses a line renderer on an otherwise empty instantiated GameObject
 		if (beamGO == null)
@@ -1041,20 +1052,24 @@ public class Weapon : MonoBehaviour
 		}
 
 		// Play the beam fire sound
-		if (!GetComponent<AudioSource>().isPlaying)
+		if (!audioSource.isPlaying)
 		{
-			GetComponent<AudioSource>().clip = fireSound;
-			GetComponent<AudioSource>().Play();
+			audioSource.clip = fireSound;
+			audioSource.Play();
+		} else{
+			if(audioSource.time >= 2f) audioSource.time = 0.25f;
 		}
+
+		WeaponSystem.Instance.UpdateAmmoText(currentAmmo, reservedAmmo, unlimitedMagazine, type);
 	}
 	
 	public void StopBeam()
 	{
 		// Restart the beam timer
-		beamHeat -= Time.deltaTime;
-		if (beamHeat < 0)
-			beamHeat = 0;
-		GetComponent<AudioSource>().Stop();
+		// beamHeat -= Time.deltaTime;
+		// if (beamHeat < 0)
+		// 	beamHeat = 0;
+		if(audioSource != null) audioSource.Stop();
 		
 		// Remove the visible beam effect GameObject
 		if (beamGO != null)
@@ -1064,6 +1079,7 @@ public class Weapon : MonoBehaviour
 
 		// Send a messsage so that users can do other actions whenever this happens
 		SendMessageUpwards("OnEasyWeaponsStopBeaming", SendMessageOptions.DontRequireReceiver);
+		WeaponSystem.Instance.UpdateAmmoText(currentAmmo, reservedAmmo, unlimitedMagazine, type);
 	}
 
 
@@ -1071,7 +1087,7 @@ public class Weapon : MonoBehaviour
 	IEnumerator Reload()
 	{
 		isReloading = true;
-		//GetComponent<AudioSource>().PlayOneShot(reloadSound);
+		//audioSource.PlayOneShot(reloadSound);
 
 		yield return new WaitForSeconds(reloadTime);
 		
@@ -1087,7 +1103,7 @@ public class Weapon : MonoBehaviour
 
 		fireTimer = -reloadTime;
 
-		WeaponSystem.Instance.UpdateAmmoText(currentAmmo,reservedAmmo, unlimitedMagazine);
+		WeaponSystem.Instance.UpdateAmmoText(currentAmmo,reservedAmmo, unlimitedMagazine, type);
 
 		// Send a messsage so that users can do other actions whenever this happens
 		SendMessageUpwards("OnEasyWeaponsReload", SendMessageOptions.DontRequireReceiver);
@@ -1098,8 +1114,7 @@ public class Weapon : MonoBehaviour
 	// When the weapon tries to fire without any ammo
 	void DryFire()
 	{
-		AudioSource audio = GetComponent<AudioSource>();
-		if(audio != null && dryFireSound != null) audio.PlayOneShot(dryFireSound);
+		if(dryFireSound != null) audioSource.PlayOneShot(dryFireSound);
 	}
 
 

@@ -18,7 +18,7 @@ public class CoinsManager : MonoBehaviour
     }
 
     private void Start() {
-        ChangeCoinsValue(400);
+        ChangeCoinsValue(200);
     }
 
     public void ChangeCoinsValue(int value){
