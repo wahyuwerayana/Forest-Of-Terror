@@ -1,0 +1,117 @@
+using System.Collections;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+using UnityEngine.AI;
+
+public class EnemySpawningSystem : MonoBehaviour
+{
+    [SerializeField] private Transform playerTransform;
+    [SerializeField] private float range = 10f;
+
+    [SerializeField] private List<GameObject> normalZombiesList;
+    [SerializeField] private List<GameObject> tankZombiesList;
+    [SerializeField] private List<GameObject> crazyZombiesList;
+
+    public const float NORMAL_ZOMBIE_BASE_HEALTH = 100f;
+    public const float TANK_ZOMBIE_BASE_HEALTH = 200f;
+    public const float CRAZY_ZOMBIE_BASE_HEALTH = 50f;
+
+    public const int NORMAL_ZOMBIE_BASE_SPAWN_NUMBER = 6;
+    public const int TANK_ZOMBIE_BASE_SPAWN_NUMBER = 4;
+    public const int CRAZY_ZOMBIE_BASE_SPAWN_NUMBER = 2;
+
+    private const int TANK_ZOMBIE_APPEARS_AT_ROUND = 5;
+    private const int CRAZY_ZOMBIE_APPEARS_AT_ROUND = 10;
+
+    [HideInInspector] public int roundNumber = 1;
+    [HideInInspector] public int totalEnemies = 0;
+
+    public TMP_Text roundText;
+    public TMP_Text totalEnemiesText;
+
+    public static EnemySpawningSystem Instance;
+
+    private Vector3 resultEnemyPosition;
+
+    private void Awake() {
+        if(Instance == null){
+            Instance = this;
+        }
+    }
+
+    private void Start() {
+        Timer.Instance.StartNextWave();
+        roundText.text = "Round: " + roundNumber.ToString();
+    }
+
+    private IEnumerator SpawnEnemy(GameObject enemyPrefab, float baseHealth){
+        yield return StartCoroutine(RandomPointInNavmeshFixed(playerTransform.position, range));
+        GameObject enemy = Instantiate(enemyPrefab, resultEnemyPosition, Quaternion.identity);
+        Health enemyHealth = enemy.GetComponent<Health>();
+        float enemyHealthNumber = GetEnemyHealth(roundNumber, baseHealth);
+        enemyHealth.maxHealth = enemyHealthNumber;
+        enemyHealth.startingHealth = enemyHealthNumber;
+    }
+
+    // private bool RandomPointInNavmesh(Vector3 center, float range, out Vector3 result){
+    //     for(int i = 0; i < 30; i++){
+    //         Vector3 randomPoint = center + Random.insideUnitSphere * range;
+    //         NavMeshHit navMeshHit;
+
+    //         if(NavMesh.SamplePosition(randomPoint, out navMeshHit, 1.0f, NavMesh.AllAreas)){
+    //             result = navMeshHit.position;
+    //             Debug.Log("Point Dapet di: " + result);
+    //             return true;
+    //         }
+    //     }
+        
+    //     result = Vector3.zero;
+    //     return false;
+    // }
+
+    private IEnumerator RandomPointInNavmeshFixed(Vector3 center, float range){
+        Vector3 randomPoint;
+        NavMeshHit navMeshHit;
+
+        do
+        {
+            randomPoint = center + Random.insideUnitSphere * range;
+            yield return null;
+        } while (!NavMesh.SamplePosition(randomPoint, out navMeshHit, 1.0f, NavMesh.AllAreas));
+
+        resultEnemyPosition = navMeshHit.position;
+        Debug.Log("Point Dapet di: " + resultEnemyPosition);
+    }
+
+    public void SpawnAllEnemies(){
+        int normalZombiesCount = GetEnemyNumber(roundNumber, NORMAL_ZOMBIE_BASE_SPAWN_NUMBER);
+        int tankZombiesCount = (roundNumber >= TANK_ZOMBIE_APPEARS_AT_ROUND) ? GetEnemyNumber(roundNumber, TANK_ZOMBIE_BASE_SPAWN_NUMBER) : 0;
+        int crazyZombiesCount = (roundNumber >= CRAZY_ZOMBIE_APPEARS_AT_ROUND) ? GetEnemyNumber(roundNumber, CRAZY_ZOMBIE_BASE_SPAWN_NUMBER) : 0;
+        totalEnemies = normalZombiesCount + tankZombiesCount + crazyZombiesCount;
+        totalEnemiesText.text = "Enemy: " + totalEnemies.ToString();
+
+        for(int i = 0; i < normalZombiesCount; i++){
+            StartCoroutine(SpawnEnemy(normalZombiesList[Random.Range(0, normalZombiesList.Count)],
+                NORMAL_ZOMBIE_BASE_HEALTH));
+        }
+
+        for(int i = 0; i < tankZombiesCount; i++){
+            StartCoroutine(SpawnEnemy(tankZombiesList[Random.Range(0, tankZombiesList.Count)], 
+                TANK_ZOMBIE_BASE_HEALTH));
+        }
+
+        for(int i = 0; i < crazyZombiesCount; i++){
+            StartCoroutine(SpawnEnemy(crazyZombiesList[Random.Range(0, crazyZombiesList.Count)], 
+                CRAZY_ZOMBIE_BASE_HEALTH));
+        }
+    }
+
+    private int GetEnemyNumber(int roundNumber, int baseSpawnNumber){
+        return (int)(baseSpawnNumber * Mathf.Pow(1 + 0.05f, roundNumber - 1));
+    }
+
+    private float GetEnemyHealth(int roundNumber, float baseHealth){
+        return (float)(baseHealth * Mathf.Pow(1 + 0.05f, roundNumber));
+    }
+}

@@ -74,3 +74,12 @@ crashlytics-build.properties
 ignore.conf
 /Assets/NatureManufacture Assets
 /Assets/Adventures_woman
+/Assets/Entity
+/Assets/Orkassasin
+/Assets/Easy Weapons/Demo
+/Assets/8K Skybox Pack Free
+.vscode/extensions.json
+.vscode/launch.json
+.vscode/settings.json
+.vsconfig
+/Assets/UI/Layer Lab
