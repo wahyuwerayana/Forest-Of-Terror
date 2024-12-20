@@ -17,6 +17,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 
 public enum WeaponType
 {
@@ -116,6 +117,7 @@ public class Weapon : MonoBehaviour
 	private bool coolingDown = false;					// Whether or not the beam weapon is currently cooling off.  This is used to make sure the weapon isn't fired when it's too close to the maximum heat level
 	private GameObject beamGO;							// The reference to the instantiated beam GameObject
 	private bool beaming = false;						// Whether or not the weapon is currently firing a beam - used to make sure StopBeam() is called after the beam is no longer being fired
+	public Transform gunTip;
 
 	// Power
 	public float power = 80.0f;							// The amount of power this weapon has (how much damage it can cause) (if the type is raycast or beam)
@@ -140,7 +142,7 @@ public class Weapon : MonoBehaviour
 	public float reloadTime = 2.0f;						// How much time it takes to reload the weapon
 	public bool showCurrentAmmo = true;					// Whether or not the current ammo should be displayed in the GUI
 	public bool reloadAutomatically = true;				// Whether or not the weapon should reload automatically when out of ammo
-	private bool isReloading = false;
+	public bool isReloading = false;
 
 	// Accuracy
 	public float accuracy = 80.0f;						// How accurate this weapon is on a scale of 0 to 100
@@ -339,7 +341,7 @@ public class Weapon : MonoBehaviour
 		// Fire if this is a raycast type weapon and the user presses the fire button
 		if (type == WeaponType.Raycast)
 		{
-			if (fireTimer >= actualROF && burstCounter < burstRate && canFire)
+			if (fireTimer >= actualROF && burstCounter < burstRate && canFire && !isReloading)
 			{
 				if (Input.GetButton("Fire1") && Time.timeScale != 0)
 				{
@@ -368,7 +370,7 @@ public class Weapon : MonoBehaviour
 		// Launch a projectile if this is a projectile type weapon and the user presses the fire button
 		if (type == WeaponType.Projectile)
 		{
-			if (fireTimer >= actualROF && burstCounter < burstRate && canFire)
+			if (fireTimer >= actualROF && burstCounter < burstRate && canFire && !isReloading)
 			{
 				if (Input.GetButton("Fire1") && Time.timeScale != 0)
 				{
@@ -408,7 +410,7 @@ public class Weapon : MonoBehaviour
 		// Shoot a beam if this is a beam type weapon and the user presses the fire button
 		if (type == WeaponType.Beam)
 		{
-			if (Input.GetButton("Fire1") && beamHeat <= maxBeamHeat && !coolingDown && Time.timeScale != 0 && currentAmmo > 0)
+			if (Input.GetButton("Fire1") && beamHeat <= maxBeamHeat && !coolingDown && Time.timeScale != 0 && currentAmmo > 0 && !isReloading)
 			{
 				Beam();
 			}
@@ -909,7 +911,7 @@ public class Weapon : MonoBehaviour
 			beamHeat -= Time.deltaTime;
 			if(beamHeat <= 0f){
 				beamHeat = 1f;
-				currentAmmo -= 2;
+				DOTween.To(() => currentAmmo, x => currentAmmo = x, currentAmmo - 20, 1f);
 			}
 		}
 			
@@ -931,7 +933,8 @@ public class Weapon : MonoBehaviour
 		// All the points at which the laser is reflected
 		List<Vector3> reflectionPoints = new List<Vector3>();
 		// Add the first point to the list of beam reflection points
-		reflectionPoints.Add(raycastStartSpot.position);
+		//reflectionPoints.Add(raycastStartSpot.position);
+		reflectionPoints.Add(gunTip.position);
 
 		// Hold a variable for the last reflected point
 		Vector3 lastPoint = raycastStartSpot.position;
@@ -1025,20 +1028,24 @@ public class Weapon : MonoBehaviour
 
 		// Set the positions of the vertices of the line renderer beam
 		beamLR.SetVertexCount(reflectionPoints.Count);
-		for (int i = 0; i < reflectionPoints.Count; i++)
-		{
-			beamLR.SetPosition(i, reflectionPoints[i]);
 
-			// Muzzle reflection effects
-			if (makeMuzzleEffects && i > 0)		// Doesn't make the FX on the first iteration since that is handled later.  This is so that the FX at the muzzle point can be parented to the weapon
-			{
-				GameObject muzfx = muzzleEffects[Random.Range(0, muzzleEffects.Length)];
-				if (muzfx != null)
-				{
-					Instantiate(muzfx, reflectionPoints[i], muzzleEffectsPosition.rotation);
-				}
-			}
-		}
+		beamLR.SetPosition(0, reflectionPoints[0]);
+		beamLR.SetPosition(1, reflectionPoints[1]);
+
+		// for (int i = 0; i < reflectionPoints.Count; i++)
+		// {
+		// 	beamLR.SetPosition(i, reflectionPoints[i]);
+
+		// 	// Muzzle reflection effects
+		// 	if (makeMuzzleEffects && i > 0)		// Doesn't make the FX on the first iteration since that is handled later.  This is so that the FX at the muzzle point can be parented to the weapon
+		// 	{
+		// 		GameObject muzfx = muzzleEffects[Random.Range(0, muzzleEffects.Length)];
+		// 		if (muzfx != null)
+		// 		{
+		// 			Instantiate(muzfx, reflectionPoints[i], muzzleEffectsPosition.rotation);
+		// 		}
+		// 	}
+		// }
 
 		// Muzzle flash effects
 		if (makeMuzzleEffects)
@@ -1087,28 +1094,42 @@ public class Weapon : MonoBehaviour
 	IEnumerator Reload()
 	{
 		isReloading = true;
-		//audioSource.PlayOneShot(reloadSound);
+		audioSource.clip = reloadSound;
+		WeaponSystem.Instance.SetActiveReloadOverlay(1.0f);
+		StartReloadSound(0f, true);
 
 		yield return new WaitForSeconds(reloadTime);
 		
 		if(unlimitedMagazine){
 			currentAmmo = ammoCapacity;
-		} else if(ammoCapacity <= reservedAmmo){
-			currentAmmo = ammoCapacity;
-			reservedAmmo -= ammoCapacity;
-		} else if(ammoCapacity > reservedAmmo){
-			currentAmmo = reservedAmmo;
-            reservedAmmo = 0;
+		} else{
+			int ammoNeeded = ammoCapacity - currentAmmo;
+			int ammoToReload = Mathf.Min(ammoNeeded, reservedAmmo);
+
+			currentAmmo += ammoToReload;
+			reservedAmmo -= ammoToReload;
 		}
 
-		fireTimer = -reloadTime;
+		//fireTimer = -reloadTime;
 
-		WeaponSystem.Instance.UpdateAmmoText(currentAmmo,reservedAmmo, unlimitedMagazine, type);
+		WeaponSystem.Instance.UpdateAmmoText(currentAmmo, reservedAmmo, unlimitedMagazine, type);
 
 		// Send a messsage so that users can do other actions whenever this happens
 		SendMessageUpwards("OnEasyWeaponsReload", SendMessageOptions.DontRequireReceiver);
 
 		isReloading = false;
+		StartReloadSound(0.6f, false);
+		WeaponSystem.Instance.SetActiveReloadOverlay(0f);
+	}
+
+	private void StartReloadSound(float timeStart, bool stopEarly){
+		audioSource.time = timeStart;
+		audioSource.Play();
+		if(stopEarly) Invoke(nameof(StopReloadSound), 0.5f);
+	}
+
+	private void StopReloadSound(){
+		audioSource.Stop();
 	}
 
 	// When the weapon tries to fire without any ammo

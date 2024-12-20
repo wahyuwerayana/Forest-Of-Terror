@@ -8,7 +8,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private Animator animator;
 
     private const float BASE_WALKSPEED = 4f;
-    private const float BASE_SPRINTSPEED = 5f;
+    private const float BASE_SPRINTSPEED = 6f;
     private const float BASE_CROUCHSPEED = 1f;
     private float walkSpeed;
     private float sprintSpeed;

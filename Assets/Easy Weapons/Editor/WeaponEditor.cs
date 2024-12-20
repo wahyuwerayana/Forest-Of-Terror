@@ -79,6 +79,7 @@ public class WeaponEditor : Editor
 				weapon.beamColor = EditorGUILayout.ColorField("Color", weapon.beamColor);
 				weapon.startBeamWidth = EditorGUILayout.FloatField("Start Width", weapon.startBeamWidth);
 				weapon.endBeamWidth = EditorGUILayout.FloatField("End Width", weapon.endBeamWidth);
+				weapon.gunTip = (Transform)EditorGUILayout.ObjectField("Gun Tip", weapon.gunTip, typeof(Transform), true);
 			}
 
 			if (weapon.type == WeaponType.Beam)

@@ -10,8 +10,7 @@ using Unity;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-using Unity.Mathematics;
-using UnityEngine.Rendering.PostProcessing;
+using DG.Tweening;
 
 public class WeaponSystem : MonoBehaviour
 {
@@ -20,6 +19,7 @@ public class WeaponSystem : MonoBehaviour
 	private int weaponIndex;					// The current index of the active weapon
 
 	[SerializeField] private TMP_Text ammoText;
+	[SerializeField] private CanvasGroup reloadOverlay;
 
 	public static WeaponSystem Instance;
 
@@ -102,6 +102,10 @@ public class WeaponSystem : MonoBehaviour
 
 	public void NextWeapon()
 	{
+		if(CheckWeaponReloading()){
+			return;
+		}
+
 		weaponIndex++;
 		if (weaponIndex > weapons.Count - 1)
 			weaponIndex = 0;
@@ -110,6 +114,10 @@ public class WeaponSystem : MonoBehaviour
 
 	public void PreviousWeapon()
 	{
+		if(CheckWeaponReloading()){
+			return;
+		}
+
 		weaponIndex--;
 		if (weaponIndex < 0)
 			weaponIndex = weapons.Count - 1;
@@ -124,5 +132,14 @@ public class WeaponSystem : MonoBehaviour
 		} else{
 			ammoText.text = currentAmmo.ToString() + " / " + reservedAmmo.ToString();
 		}
+	}
+
+	public void SetActiveReloadOverlay(float endValue){
+        reloadOverlay.DOFade(endValue, 0.5f);
+	}
+
+	private bool CheckWeaponReloading(){
+		Weapon weaponScript = weapons[weaponIndex].GetComponent<Weapon>();
+		return weaponScript.isReloading;
 	}
 }

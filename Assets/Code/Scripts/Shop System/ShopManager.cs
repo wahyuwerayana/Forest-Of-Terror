@@ -29,10 +29,6 @@ public class ShopManager : MonoBehaviour
     [Header("Total Price (DO NOT EDIT VALUES)")]
     public float cartCount = 0;
 
-    [Header("UI")]
-    public GameObject popUpPanel;
-    public TMP_Text buyItemText;
-
     [Header("Player Attributes")]
     [SerializeField] private Health playerHealthScript;
     [SerializeField] private WeaponSystem weaponSystemScript;
@@ -44,10 +40,13 @@ public class ShopManager : MonoBehaviour
     private ItemSO currentSelectedItem;
     private int currentSelectedItemPrice;
 
+    public static bool isOpened = false;
+
     private void Start()
     {
         Initialize();
         InitializeDictionary();
+        isOpened = false;
     }
 
     public void Initialize()
@@ -136,11 +135,17 @@ public class ShopManager : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.B))
+        if (Input.GetKeyDown(KeyCode.B) && !PauseController.isPaused && !CardManager.Instance.GetCardUICondition())
         {
             Shop.SetActive(!Shop.activeSelf);
             SetActiveShop(Shop.activeSelf);
+            isOpened = Shop.activeSelf;
             //always reset cart count when open or close the shop
+            cartCount = 0;
+        } else if(Input.GetKeyDown(KeyCode.Escape) && !PauseController.isPaused && Shop.activeSelf){
+            Shop.SetActive(false);
+            SetActiveShop(false);
+            isOpened = false;
             cartCount = 0;
         }
     }
@@ -149,7 +154,6 @@ public class ShopManager : MonoBehaviour
         CardManager.Instance.GetCurrentWeapon();
 
         if(shopCondition){
-            popUpPanel.SetActive(false);
             CardManager.Instance.currentActiveWeapon.showCrosshair = false;
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.Confined;
@@ -168,11 +172,10 @@ public class ShopManager : MonoBehaviour
 
         currentSelectedItem = item;
         currentSelectedItemPrice = newPrice;
-        popUpPanel.SetActive(true);
-        buyItemText.text = "Buy " + item.Name + "?";
+        BuyItem();
     }
 
-    public void YesButton(){
+    public void BuyItem(){
         CoinsManager.Instance.ChangeCoinsValue(-currentSelectedItemPrice);
         
         switch(currentSelectedItem.itemType){
@@ -189,11 +192,6 @@ public class ShopManager : MonoBehaviour
         
         IncrementPrice();
         PopulateShop(shopItem);
-        popUpPanel.SetActive(false);
-    }
-
-    public void NoButton(){
-        popUpPanel.SetActive(false);
     }
 
     private void BuyHealItem(string itemName){
@@ -232,7 +230,6 @@ public class ShopManager : MonoBehaviour
         } else{
             weaponsDictionary[currentItemSO].reservedAmmo += currentItemSO.ammoTotal;
         }
-        Debug.Log(currentItemSO.ammoTotal);
 
         WeaponSystem.Instance.UpdateAmmoText(weaponsDictionary[currentItemSO].currentAmmo,
             weaponsDictionary[currentItemSO].reservedAmmo, 

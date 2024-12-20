@@ -96,4 +96,8 @@ public class CardManager : MonoBehaviour
             }
         }
     }
+
+    public bool GetCardUICondition(){
+        return cardSelectionUI.activeSelf;
+    }
 }

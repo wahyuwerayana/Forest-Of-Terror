@@ -5,9 +5,14 @@ using UnityEngine;
 public class PauseController : MonoBehaviour
 {
     [SerializeField] private GameObject pausePanel;
+    public static bool isPaused = false;
+
+    private void Start() {
+        isPaused = false;
+    }
 
     private void Update() {
-        if(Input.GetKeyDown(KeyCode.Escape)){
+        if(Input.GetKeyDown(KeyCode.Escape) && !ShopManager.isOpened && !CardManager.Instance.GetCardUICondition()){
             PauseGame(!pausePanel.activeSelf);
         }
     }
@@ -15,21 +20,19 @@ public class PauseController : MonoBehaviour
     private void PauseGame(bool pausePanelBool){
         CardManager.Instance.GetCurrentWeapon();
         if(pausePanelBool){
+            isPaused = true;
             Time.timeScale = 0;
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.Confined;
             CardManager.Instance.currentActiveWeapon.showCrosshair = false;
             pausePanel.SetActive(true);
         } else{
-            Time.timeScale = 1;
-            Cursor.visible = false;
-            Cursor.lockState = CursorLockMode.Locked;
-            CardManager.Instance.currentActiveWeapon.showCrosshair = true;
-            pausePanel.SetActive(false);
+            ResumeGame();
         }
     }
 
     public void ResumeGame(){
+        isPaused = false;
         Time.timeScale = 1;
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
