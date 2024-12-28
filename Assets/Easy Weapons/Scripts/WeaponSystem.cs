@@ -69,6 +69,10 @@ public class WeaponSystem : MonoBehaviour
 
 	public void SetActiveWeapon(int index)
 	{
+		if(CheckWeaponReloading()){
+			return;
+		}
+
 		// Make sure this weapon exists before trying to switch to it
 		if (index >= weapons.Count || index < 0)
 		{
